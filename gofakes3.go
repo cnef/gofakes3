@@ -88,9 +88,13 @@ func (g *GoFakeS3) Server() http.Handler {
 func (g *GoFakeS3) timeSkewMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, rq *http.Request) {
 		timeHdr := rq.Header.Get("x-amz-date")
+		timeLayout := time.RFC1123
+		if strings.HasPrefix(rq.Header.Get("Authorization"), "AWS4") {
+			timeLayout = "20060102T150405Z"
+		}
 
 		if timeHdr != "" {
-			rqTime, _ := time.Parse("20060102T150405Z", timeHdr)
+			rqTime, _ := time.Parse(timeLayout, timeHdr)
 			at := g.timeSource.Now()
 			skew := at.Sub(rqTime)
 
@@ -417,6 +421,39 @@ func (g *GoFakeS3) getObject(
 	return nil
 }
 
+// getObjectACL retrievs a bucket object acl.
+func (g *GoFakeS3) getObjectACL(
+	bucket, object string,
+	versionID VersionID,
+	w http.ResponseWriter,
+	r *http.Request,
+) error {
+
+	g.log.Print(LogInfo, "GET OBJECT ACL")
+	g.log.Print(LogInfo, "Bucket:", bucket)
+	g.log.Print(LogInfo, "└── Object:", object)
+
+	w.Header().Set("Content-Type", "application/xml")
+	w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+<AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+	<Owner>
+	  <ID>default-s3user</ID>
+	  <DisplayName>default-s3user</DisplayName>
+	</Owner>
+	<AccessControlList>
+	  <Grant>
+		<Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="CanonicalUser">
+		  <ID>default-s3user</ID>
+		  <DisplayName>default-s3user</DisplayName>
+		</Grantee>
+		<Permission>FULL_CONTROL</Permission>
+	  </Grant>
+	</AccessControlList>
+</AccessControlPolicy>`))
+
+	return nil
+}
+
 // writeGetOrHeadObjectResponse contains shared logic for constructing headers for
 // a HEAD and a GET request for a /bucket/object URL.
 func (g *GoFakeS3) writeGetOrHeadObjectResponse(obj *Object, w http.ResponseWriter, r *http.Request) error {
@@ -556,6 +593,16 @@ func (g *GoFakeS3) createObject(bucket, object string, w http.ResponseWriter, r 
 
 	if len(object) > KeySizeLimit {
 		return ResourceError(ErrKeyTooLong, object)
+	}
+
+	if size == 0 && strings.HasSuffix(r.URL.Path, "/") {
+		g.log.Print(LogInfo, "CREATE SUBDIR:", object)
+		if err := g.storage.CreateBucket(bucket + "/" + object); err != nil {
+			return err
+		}
+
+		w.Write([]byte{})
+		return nil
 	}
 
 	var md5Base64 string

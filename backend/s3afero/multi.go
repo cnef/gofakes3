@@ -142,8 +142,7 @@ func (db *MultiBucketBackend) getBucketWithFilePrefixLocked(bucket string, prefi
 		}
 
 		if entry.IsDir() {
-			response.AddPrefix(path.Join(prefixPath, prefixPart))
-
+			response.AddPrefix(path.Join(prefixPath, object))
 		} else {
 			size := entry.Size()
 			mtime := entry.ModTime()
@@ -467,7 +466,7 @@ func (db *MultiBucketBackend) deleteObjectLocked(bucketName, objectName string) 
 
 	// S3 does not report an error when attemping to delete a key that does not exist, so
 	// we need to skip IsNotExist errors.
-	if err := db.bucketFs.Remove(filepath.FromSlash(fullPath)); err != nil && !os.IsNotExist(err) {
+	if err := db.bucketFs.RemoveAll(filepath.FromSlash(fullPath)); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 

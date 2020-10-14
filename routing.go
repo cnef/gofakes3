@@ -78,7 +78,11 @@ func (g *GoFakeS3) routeBase(w http.ResponseWriter, r *http.Request) {
 func (g *GoFakeS3) routeObject(bucket, object string, w http.ResponseWriter, r *http.Request) (err error) {
 	switch r.Method {
 	case "GET":
-		return g.getObject(bucket, object, "", w, r)
+		if _, ok := r.URL.Query()["acl"]; ok {
+			return g.getObjectACL(bucket, object, "", w, r)
+		} else {
+			return g.getObject(bucket, object, "", w, r)
+		}
 	case "HEAD":
 		return g.headObject(bucket, object, "", w, r)
 	case "PUT":

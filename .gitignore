@@ -7,3 +7,5 @@ s3f_*
 *.test
 *.out
 build/
+cmd/gofakes3/gofakes3*
+vendor/
