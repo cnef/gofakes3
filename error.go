@@ -87,6 +87,9 @@ const (
 	ErrTooManyBuckets       ErrorCode = "TooManyBuckets"
 	ErrNotImplemented       ErrorCode = "NotImplemented"
 
+	// You are not authorized to perform this operation.
+	ErrUnauthorizedAccess ErrorCode = "UnauthorizedAccess"
+
 	ErrInternal ErrorCode = "InternalError"
 )
 
@@ -222,6 +225,8 @@ func (e ErrorCode) Message() string {
 		return "The difference between the request time and the current time is too large"
 	case ErrMalformedXML:
 		return "The XML you provided was not well-formed or did not validate against our published schema"
+	case ErrUnauthorizedAccess:
+		return "You are not authorized to perform this operation."
 	default:
 		return ""
 	}
@@ -270,6 +275,9 @@ func (e ErrorCode) Status() int {
 
 	case ErrMissingContentLength:
 		return http.StatusLengthRequired
+
+	case ErrUnauthorizedAccess:
+		return http.StatusUnauthorized
 
 	case ErrInternal:
 		return http.StatusInternalServerError

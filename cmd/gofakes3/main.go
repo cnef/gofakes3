@@ -43,6 +43,10 @@ type fakeS3Flags struct {
 	fsPath         string
 	fsMeta         string
 
+	authAccessKey string
+	authSecretKey string
+	authPublicGet bool
+
 	debugCPU  string
 	debugHost string
 }
@@ -62,6 +66,11 @@ func (f *fakeS3Flags) attach(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&f.directFsBucket, "directfs.bucket", "mybucket", "Name of the bucket for your file path; this will be the only supported bucket by the 'directfs' backend for the duration of your run.")
 	flagSet.StringVar(&f.fsPath, "fs.path", "", "Path to your S3 buckets. Buckets are stored under the '/buckets' subpath.")
 	flagSet.StringVar(&f.fsMeta, "fs.meta", "", "Optional path for storing S3 metadata for your buckets. Defaults to the '/metadata' subfolder of -fs.path if not passed.")
+
+	// Auth:
+	flagSet.StringVar(&f.authAccessKey, "auth.key", "", "Optional s3 AccessKeyID to enable authentication of s3 server, ")
+	flagSet.StringVar(&f.authSecretKey, "auth.secret", "", "The SecretAccessKey of s3 auth")
+	flagSet.BoolVar(&f.authPublicGet, "auth.publicget", false, "Allow get object without auth info")
 
 	// Debugging:
 	flagSet.StringVar(&f.debugHost, "debug.host", "", "Run the debug server on this host")
@@ -99,7 +108,7 @@ func debugServer(host string) {
 	srv := &http.Server{Addr: host}
 	srv.Handler = mux
 	if err := srv.ListenAndServe(); err != nil {
-		panic(err)
+		log.Fatalf("start debug server failed")
 	}
 }
 
@@ -221,6 +230,7 @@ func run() error {
 		gofakes3.WithTimeSource(timeSource),
 		gofakes3.WithLogger(gofakes3.GlobalLog()),
 		gofakes3.WithHostBucket(values.hostBucket),
+		gofakes3.WithAuthRequire(values.authAccessKey, values.authSecretKey, values.authPublicGet),
 	)
 
 	return listenAndServe(values.host, faker.Server())

@@ -32,6 +32,7 @@ type GoFakeS3 struct {
 	integrityCheck          bool
 	failOnUnimplementedPage bool
 	hostBucket              bool
+	credentials             *Credentials
 	uploader                *uploader
 	requestID               uint64
 	log                     Logger
@@ -80,6 +81,10 @@ func (g *GoFakeS3) Server() http.Handler {
 
 	if g.hostBucket {
 		handler = g.hostBucketMiddleware(handler)
+	}
+
+	if g.credentials != nil {
+		handler = g.authMiddleware(handler)
 	}
 
 	return handler
