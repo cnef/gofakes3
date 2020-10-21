@@ -1,7 +1,6 @@
 package gofakes3
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 )
@@ -36,8 +35,6 @@ func WithAuthRequire(accessKey, secret string, publicGet bool) Option {
 
 func (g *GoFakeS3) authMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("auth")
-
 		if g.allowPublicGet(r) || g.validSignVersion2(r) || g.validSignVersion4(r) {
 			handler.ServeHTTP(w, r)
 			return
