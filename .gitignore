@@ -8,4 +8,5 @@ s3f_*
 *.out
 build/
 cmd/gofakes3/gofakes3*
+cmd/gofakes3/data
 vendor/
